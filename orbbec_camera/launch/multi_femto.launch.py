@@ -1,7 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction, ExecuteProcess
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 import os
 
@@ -15,8 +14,9 @@ def generate_launch_description():
             os.path.join(launch_file_dir, 'femto_bolt.launch.py')
         ),
         launch_arguments={
-            'camera_name': 'camera_01',
-            'usb_port': '2-3',
+            'camera_name': 'front',
+            'usb_port': '2-9.2.1',
+            # 'serial_number': 'CL8K14100WH',
             'device_num': '2',
             'sync_mode': 'free_run'
         }.items()
@@ -27,8 +27,9 @@ def generate_launch_description():
             os.path.join(launch_file_dir, 'femto_bolt.launch.py')
         ),
         launch_arguments={
-            'camera_name': 'camera_02',
-            'usb_port': '2-2',
+            'camera_name': 'top',
+            'usb_port': '2-9.1.4',
+            # 'serial_number': 'CL8K14101DW',
             'device_num': '2',
             'sync_mode': 'free_run'
         }.items()
