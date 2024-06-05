@@ -69,7 +69,7 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_soft_filter', default_value='true'),
         DeclareLaunchArgument('soft_filter_max_diff', default_value='-1'),
         DeclareLaunchArgument('soft_filter_speckle_size', default_value='-1'),
-        DeclareLaunchArgument('sync_mode', default_value='free_run'),
+        DeclareLaunchArgument('sync_mode', default_value='standalone'),
         DeclareLaunchArgument('depth_delay_us', default_value='0'),
         DeclareLaunchArgument('color_delay_us', default_value='0'),
         DeclareLaunchArgument('trigger2image_delay_us', default_value='0'),
@@ -78,7 +78,7 @@ def generate_launch_description():
         DeclareLaunchArgument('ordered_pc', default_value='false'),
         DeclareLaunchArgument('use_hardware_time', default_value='false'),
         DeclareLaunchArgument('enable_depth_scale', default_value='true'),
-        DeclareLaunchArgument('align_mode', default_value='HW'),
+        DeclareLaunchArgument('align_mode', default_value='SW'),
     ]
 
     # Node configuration
