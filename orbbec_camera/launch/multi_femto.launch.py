@@ -14,8 +14,9 @@ def generate_launch_description():
             os.path.join(launch_file_dir, 'femto_bolt.launch.py')
         ),
         launch_arguments={
-            'camera_name': 'front',
+            'camera_name': 'front_camera',
             'usb_port': '2-9.2.1',
+            # 'usb_port': '2-4',
             # 'serial_number': 'CL8K14100WH',
             'device_num': '2',
             'sync_mode': 'free_run'
@@ -27,8 +28,9 @@ def generate_launch_description():
             os.path.join(launch_file_dir, 'femto_bolt.launch.py')
         ),
         launch_arguments={
-            'camera_name': 'top',
+            'camera_name': 'top_camera',
             'usb_port': '2-9.1.4',
+            # 'usb_port': '2-5',
             # 'serial_number': 'CL8K14101DW',
             'device_num': '2',
             'sync_mode': 'free_run'
