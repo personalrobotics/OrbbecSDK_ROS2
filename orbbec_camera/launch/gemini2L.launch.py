@@ -32,6 +32,10 @@ def generate_launch_description():
         DeclareLaunchArgument('color_qos', default_value='default'),
         DeclareLaunchArgument('color_camera_info_qos', default_value='default'),
         DeclareLaunchArgument('enable_color_auto_exposure', default_value='true'),
+        DeclareLaunchArgument('color_exposure', default_value='-1'),
+        DeclareLaunchArgument('color_gain', default_value='-1'),
+        DeclareLaunchArgument('enable_color_auto_white_balance', default_value='true'),
+        DeclareLaunchArgument('color_white_balance', default_value='-1'),
         DeclareLaunchArgument('depth_width', default_value='640'),
         DeclareLaunchArgument('depth_height', default_value='400'),
         DeclareLaunchArgument('depth_fps', default_value='15'),
@@ -49,6 +53,8 @@ def generate_launch_description():
         DeclareLaunchArgument('ir_qos', default_value='default'),
         DeclareLaunchArgument('ir_camera_info_qos', default_value='default'),
         DeclareLaunchArgument('enable_ir_auto_exposure', default_value='true'),
+        DeclareLaunchArgument('ir_exposure', default_value='-1'),
+        DeclareLaunchArgument('ir_gain', default_value='-1'),
         DeclareLaunchArgument('enable_sync_output_accel_gyro', default_value='true'),
         DeclareLaunchArgument('enable_accel', default_value='false'),
         DeclareLaunchArgument('accel_rate', default_value='100hz'),
@@ -86,6 +92,7 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_depth_scale', default_value='true'),
         DeclareLaunchArgument('align_mode', default_value='HW'),
         DeclareLaunchArgument('retry_on_usb3_detection_failure', default_value='false'),
+        DeclareLaunchArgument('laser_energy_level', default_value='-1'),
     ]
 
     # Node configuration

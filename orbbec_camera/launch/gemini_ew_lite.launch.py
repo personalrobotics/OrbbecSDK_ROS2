@@ -40,6 +40,8 @@ def generate_launch_description():
         DeclareLaunchArgument('ir_qos', default_value='default'),
         DeclareLaunchArgument('ir_camera_info_qos', default_value='default'),
         DeclareLaunchArgument('enable_ir_auto_exposure', default_value='true'),
+        DeclareLaunchArgument('ir_exposure', default_value='-1'),
+        DeclareLaunchArgument('ir_gain', default_value='-1'),
         DeclareLaunchArgument('publish_tf', default_value='true'),
         DeclareLaunchArgument('tf_publish_rate', default_value='10.0'),
         DeclareLaunchArgument('ir_info_url', default_value=''),
@@ -51,11 +53,11 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_soft_filter', default_value='true'),
         DeclareLaunchArgument('soft_filter_max_diff', default_value='-1'),
         DeclareLaunchArgument('soft_filter_speckle_size', default_value='-1'),
-        DeclareLaunchArgument('jpeg_decoder', default_value='avdec_mjpeg'),
-        DeclareLaunchArgument('video_convert', default_value='videoconvert'),
         DeclareLaunchArgument('ordered_pc', default_value='false'),
         DeclareLaunchArgument('use_hardware_time', default_value='false'),
         DeclareLaunchArgument('align_mode', default_value='HW'),
+        DeclareLaunchArgument('laser_energy_level', default_value='-1'),
+
     ]
 
     # Node configuration

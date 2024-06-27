@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <glog/logging.h>
 #include <nlohmann/json.hpp>
 
 #include <memory>
@@ -28,7 +27,6 @@
 #include <vector>
 #include <atomic>
 #include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -64,6 +62,12 @@
 #include "magic_enum/magic_enum.hpp"
 #include "jpeg_decoder.h"
 #include <std_msgs/msg/string.hpp>
+
+#if defined(ROS_JAZZY) || defined(ROS_IRON)
+#include <cv_bridge/cv_bridge.hpp>
+#else
+#include <cv_bridge/cv_bridge.h>
+#endif
 
 #define STREAM_NAME(sip)                                                                       \
   (static_cast<std::ostringstream&&>(std::ostringstream()                                      \
@@ -135,9 +139,9 @@ class OBCameraNode {
       const rcl_interfaces::msg::ParameterDescriptor& parameter_descriptor =
           rcl_interfaces::msg::ParameterDescriptor());  // set and get parameter
 
-  ~OBCameraNode();
+  ~OBCameraNode() noexcept;
 
-  void clean();
+  void clean() noexcept;
 
   void startStreams();
 
@@ -441,9 +445,15 @@ class OBCameraNode {
   bool enable_depth_filter_ = false;
   bool enable_soft_filter_ = true;
   bool enable_color_auto_exposure_ = true;
+  bool enable_color_auto_white_balance_ = true;
   bool enable_ir_auto_exposure_ = true;
   bool enable_ir_long_exposure_ = false;
   bool enable_ldp_ = true;
+  int color_exposure_ = -1;
+  int color_gain_ = -1;
+  int color_white_balance_ = -1;
+  int ir_exposure_ = -1;
+  int ir_gain_ = -1;
   int soft_filter_max_diff_ = -1;
   int soft_filter_speckle_size_ = -1;
   bool enable_frame_sync_ = false;
@@ -527,5 +537,13 @@ class OBCameraNode {
   OBStreamType align_target_stream_ = OB_STREAM_COLOR;
   bool retry_on_usb3_detection_failure_ = false;
   std::atomic_bool is_camera_node_initialized_{false};
+  int laser_energy_level_ = -1;
+  ob::PointCloudFilter depth_point_cloud_filter_;
+  std::optional<OBCalibrationParam> calibration_param_;
+  std::optional<OBXYTables> xy_tables_;
+  float* xy_table_data_ = nullptr;
+  uint32_t xy_table_data_size_ = 0;
+  uint8_t* rgb_point_cloud_buffer_ = nullptr;
+  uint32_t rgb_point_cloud_buffer_size_ = 0;
 };
 }  // namespace orbbec_camera
