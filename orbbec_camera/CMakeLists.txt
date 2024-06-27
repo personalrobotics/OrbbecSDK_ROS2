@@ -15,6 +15,12 @@ option(USE_NV_HW_DECODER "Use Nvidia hardware decoder" OFF)
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Werror -Wno-pedantic -Wno-array-bounds)
 endif ()
+# Check if ROS Jazzy or iron is installed
+if ("$ENV{ROS_DISTRO}" STREQUAL "jazzy")
+  add_compile_definitions(ROS_JAZZY)
+elseif ("$ENV{ROS_DISTRO}" STREQUAL "iron")
+  add_compile_definitions(ROS_IRON)
+endif ()
 
 # find dependencies
 set(dependencies
@@ -48,11 +54,7 @@ foreach (dep IN LISTS dependencies)
 endforeach ()
 
 find_package(PkgConfig REQUIRED)
-pkg_search_module(GLOG REQUIRED libglog)
 
-if (NOT GLOG_FOUND)
-  message(FATAL_ERROR "glog is not found")
-endif ()
 
 if (USE_RK_HW_DECODER)
   pkg_search_module(RK_MPP REQUIRED rockchip_mpp)
@@ -106,14 +108,12 @@ set(COMMON_INCLUDE_DIRS
   $<INSTALL_INTERFACE:include>
   ${ORBBEC_INCLUDE_DIR}
   ${OpenCV_INCLUDED_DIRS}
-  ${GLOG_INCLUDED_DIRS}
 )
 
 set(COMMON_LIBRARIES
   ${ORBBEC_SDK_LIBRARIES}
   ${OpenCV_LIBS}
   Eigen3::Eigen
-  ${GLOG_LIBRARIES}
   -lOrbbecSDK
   -L${ORBBEC_LIBS_DIR}
   Threads::Threads
@@ -222,12 +222,12 @@ install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME}/)
 install(DIRECTORY ${ORBBEC_INCLUDE_DIR} DESTINATION include)
 install(DIRECTORY ${ORBBEC_LIBS_DIR}/ DESTINATION lib/ FILES_MATCHING PATTERN "*.so*")
-if(DEFINED ENV{BUILDING_PACKAGE})
+if (DEFINED ENV{BUILDING_PACKAGE})
   # Install udev rules
   install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/scripts/99-obsensor-libusb.rules
     DESTINATION /etc/udev/rules.d
   )
-endif()
+endif ()
 
 install(TARGETS list_devices_node
   list_depth_work_mode_node
