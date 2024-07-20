@@ -83,6 +83,7 @@ class OBCameraNodeDriver : public rclcpp::Node {
   std::recursive_mutex device_lock_;
   int device_num_ = 1;
   rclcpp::TimerBase::SharedPtr check_connect_timer_ = nullptr;
+  rclcpp::TimerBase::SharedPtr sync_host_time_timer_ = nullptr;
   std::shared_ptr<std::thread> reset_device_thread_ = nullptr;
   std::mutex reset_device_mutex_;
   std::condition_variable reset_device_cond_;
@@ -96,5 +97,6 @@ class OBCameraNodeDriver : public rclcpp::Node {
   std::string net_device_ip_;
   int net_device_port_ = 0;
   int connection_delay_ = 100;
+  bool enable_sync_host_time_ = true;
 };
 }  // namespace orbbec_camera

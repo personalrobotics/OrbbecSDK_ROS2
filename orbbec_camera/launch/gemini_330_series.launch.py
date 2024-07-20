@@ -1,16 +1,55 @@
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import PushRosNamespace
-from launch.actions import GroupAction
-from launch_ros.actions import ComposableNodeContainer
-from launch_ros.descriptions import ComposableNode
-from launch_ros.actions import Node
 import os
+import yaml
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, GroupAction
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import PushRosNamespace, ComposableNodeContainer, Node
+from launch_ros.descriptions import ComposableNode
+
+
+def load_yaml(file_path):
+    with open(file_path, 'r') as f:
+        return yaml.safe_load(f)
+
+
+def merge_params(default_params, yaml_params):
+    for key, value in yaml_params.items():
+        if key in default_params:
+            default_params[key] = value
+    return default_params
+
+
+def convert_value(value):
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        try:
+            return float(value)
+        except ValueError:
+            pass
+        if value.lower() == 'true':
+            return True
+        elif value.lower() == 'false':
+            return False
+    return value
+
+
+def load_parameters(context, args):
+    default_params = {arg.name: LaunchConfiguration(arg.name).perform(context) for arg in args}
+    config_file_path = LaunchConfiguration('config_file_path').perform(context)
+    if config_file_path:
+        yaml_params = load_yaml(config_file_path)
+        default_params = merge_params(default_params, yaml_params)
+    skip_convert = {'config_file_path', 'usb_port', 'serial_number'}
+    return {
+        key: (value if key in skip_convert else convert_value(value))
+        for key, value in default_params.items()
+    }
 
 
 def generate_launch_description():
-    # Declare arguments
     args = [
         DeclareLaunchArgument('camera_name', default_value='camera'),
         DeclareLaunchArgument('depth_registration', default_value='true'),
@@ -19,7 +58,7 @@ def generate_launch_description():
         DeclareLaunchArgument('device_num', default_value='1'),
         DeclareLaunchArgument('point_cloud_qos', default_value='default'),
         DeclareLaunchArgument('enable_point_cloud', default_value='false'),
-        DeclareLaunchArgument('enable_colored_point_cloud', default_value='true'),
+        DeclareLaunchArgument('enable_colored_point_cloud', default_value='false'),
         DeclareLaunchArgument('connection_delay', default_value='100'),
         DeclareLaunchArgument('color_width', default_value='0'),
         DeclareLaunchArgument('color_height', default_value='0'),
@@ -57,7 +96,7 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_ir_auto_exposure', default_value='true'),
         DeclareLaunchArgument('ir_exposure', default_value='-1'),
         DeclareLaunchArgument('ir_gain', default_value='-1'),
-        DeclareLaunchArgument('enable_sync_output_accel_gyro', default_value='true'),
+        DeclareLaunchArgument('enable_sync_output_accel_gyro', default_value='false'),
         DeclareLaunchArgument('enable_accel', default_value='false'),
         DeclareLaunchArgument('accel_rate', default_value='200hz'),
         DeclareLaunchArgument('accel_range', default_value='4g'),
@@ -67,7 +106,7 @@ def generate_launch_description():
         DeclareLaunchArgument('liner_accel_cov', default_value='0.01'),
         DeclareLaunchArgument('angular_vel_cov', default_value='0.01'),
         DeclareLaunchArgument('publish_tf', default_value='true'),
-        DeclareLaunchArgument('tf_publish_rate', default_value='10.0'),
+        DeclareLaunchArgument('tf_publish_rate', default_value='0.0'),
         DeclareLaunchArgument('ir_info_url', default_value=''),
         DeclareLaunchArgument('color_info_url', default_value=''),
         DeclareLaunchArgument('log_level', default_value='none'),
@@ -82,7 +121,9 @@ def generate_launch_description():
         DeclareLaunchArgument('color_delay_us', default_value='0'),
         DeclareLaunchArgument('trigger2image_delay_us', default_value='0'),
         DeclareLaunchArgument('trigger_out_delay_us', default_value='0'),
-        DeclareLaunchArgument('trigger_out_enabled', default_value='false'),
+        DeclareLaunchArgument('trigger_out_enabled', default_value='true'),
+        DeclareLaunchArgument('frames_per_trigger', default_value='2'),
+        DeclareLaunchArgument('software_trigger_period', default_value='33'),  # ms
         DeclareLaunchArgument('enable_frame_sync', default_value='true'),
         DeclareLaunchArgument('ordered_pc', default_value='false'),
         DeclareLaunchArgument('use_hardware_time', default_value='true'),
@@ -117,63 +158,56 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_laser', default_value='true'),
         DeclareLaunchArgument('depth_precision', default_value=''),
         DeclareLaunchArgument('device_preset', default_value='Default'),
-        # Laser on/off alternate mode, 0: off, 1: on-off alternate, 2: off-on alternate.
         DeclareLaunchArgument('laser_on_off_mode', default_value='0'),
         DeclareLaunchArgument('retry_on_usb3_detection_failure', default_value='false'),
         DeclareLaunchArgument('laser_energy_level', default_value='-1'),
-        # When 3D reconstruction mode is enabled:
-        # - The laser will switch to on-off mode
-        # - IR images without the laser will be used for SLAM localization
-        # - Depth images with the laser will be used because they provide better depth quality
         DeclareLaunchArgument('enable_3d_reconstruction_mode', default_value='false'),
+        DeclareLaunchArgument('enable_sync_host_time', default_value='true'),
+        DeclareLaunchArgument('time_domain', default_value='device'),
+        DeclareLaunchArgument('config_file_path', default_value=''),
     ]
 
-    # Node configuration
-    parameters = [{arg.name: LaunchConfiguration(arg.name)} for arg in args]
-    # get  ROS_DISTRO
-    ros_distro = os.environ["ROS_DISTRO"]
-    if ros_distro == "foxy":
-        return LaunchDescription(
-            args
-            + [
+    def get_params(context, args):
+        return [load_parameters(context, args)]
+
+    def create_node_action(context, args):
+        params = get_params(context, args)
+        ros_distro = os.environ.get("ROS_DISTRO", "humble")
+        if ros_distro == "foxy":
+            return [
                 Node(
                     package="orbbec_camera",
                     executable="orbbec_camera_node",
                     name="ob_camera_node",
                     namespace=LaunchConfiguration("camera_name"),
-                    parameters=parameters,
+                    parameters=params,
                     output="screen",
                 )
             ]
-        )
-    # Define the ComposableNode
-    else:
-        # Define the ComposableNode
-        compose_node = ComposableNode(
-            package="orbbec_camera",
-            plugin="orbbec_camera::OBCameraNodeDriver",
-            name=LaunchConfiguration("camera_name"),
-            namespace="",
-            parameters=parameters,
-        )
-        # Define the ComposableNodeContainer
-        container = ComposableNodeContainer(
-            name="camera_container",
-            namespace="",
-            package="rclcpp_components",
-            executable="component_container",
-            composable_node_descriptions=[
-                compose_node,
-            ],
-            output="screen",
-        )
-        # Launch description
-        ld = LaunchDescription(
-            args
-            + [
-                GroupAction(
-                    [PushRosNamespace(LaunchConfiguration("camera_name")), container]
-                )
+        else:
+            return [
+                GroupAction([
+                    PushRosNamespace(LaunchConfiguration("camera_name")),
+                    ComposableNodeContainer(
+                        name="camera_container",
+                        namespace="",
+                        package="rclcpp_components",
+                        executable="component_container",
+                        composable_node_descriptions=[
+                            ComposableNode(
+                                package="orbbec_camera",
+                                plugin="orbbec_camera::OBCameraNodeDriver",
+                                name=LaunchConfiguration("camera_name"),
+                                parameters=params,
+                            ),
+                        ],
+                        output="screen",
+                    )
+                ])
             ]
-        )
-        return ld
+
+    return LaunchDescription(
+        args + [
+            OpaqueFunction(function=lambda context: create_node_action(context, args))
+        ]
+    )

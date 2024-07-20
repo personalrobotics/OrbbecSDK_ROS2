@@ -269,6 +269,9 @@ class OBCameraNode {
   void getLdpStatusCallback(const std::shared_ptr<GetBool::Request>& request,
                             std::shared_ptr<GetBool::Response>& response);
 
+  void getLdpMeasureDistanceCallback(const std::shared_ptr<GetInt32::Request>& request,
+                                     std::shared_ptr<GetInt32::Response>& response);
+
   bool toggleSensor(const stream_index_pair& stream_index, bool enabled, std::string& msg);
 
   void saveImageCallback(const std::shared_ptr<std_srvs::srv::Empty::Request>& request,
@@ -290,6 +293,8 @@ class OBCameraNode {
   void publishColoredPointCloud(const std::shared_ptr<ob::FrameSet>& frame_set);
 
   std::shared_ptr<ob::Frame> processDepthFrameFilter(std::shared_ptr<ob::Frame>& frame);
+
+  uint64_t getFrameTimestampUs(const std::shared_ptr<ob::Frame> & frame);
 
   void onNewFrameSetCallback(std::shared_ptr<ob::FrameSet> frame_set);
 
@@ -408,6 +413,7 @@ class OBCameraNode {
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr set_floor_enable_srv_;
   rclcpp::Service<SetInt32>::SharedPtr set_fan_work_mode_srv_;
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr toggle_sensors_srv_;
+  rclcpp::Service<GetInt32>::SharedPtr get_ldp_measure_distance_srv_;
 
   bool enable_sync_output_accel_gyro_ = false;
   bool publish_tf_ = false;
@@ -467,6 +473,7 @@ class OBCameraNode {
   int trigger2image_delay_us_ = 0;
   int trigger_out_delay_us_ = 0;
   bool trigger_out_enabled_ = false;
+  int frames_per_trigger_ = 2;
   std::string depth_precision_str_;
   OB_DEPTH_PRECISION_LEVEL depth_precision_ = OB_PRECISION_0MM8;
   double depth_precision_float_ = 0.10;
@@ -494,7 +501,6 @@ class OBCameraNode {
   std::condition_variable color_frame_queue_cv_;
 
   bool ordered_pc_ = false;
-  bool use_hardware_time_ = true;
   bool enable_depth_scale_ = true;
   std::shared_ptr<ob::Frame> depth_frame_ = nullptr;
   std::string device_preset_ = "Default";
@@ -546,5 +552,11 @@ class OBCameraNode {
   uint8_t* rgb_point_cloud_buffer_ = nullptr;
   uint32_t rgb_point_cloud_buffer_size_ = 0;
   bool enable_3d_reconstruction_mode_ = false;
+  int min_depth_limit_ = 0;
+  int max_depth_limit_ = 0;
+  std::string time_domain_ = "device"; // device, system, global
+  // soft ware trigger
+  rclcpp::TimerBase::SharedPtr software_trigger_timer_;
+  std::chrono::milliseconds software_trigger_period_{33};
 };
 }  // namespace orbbec_camera
