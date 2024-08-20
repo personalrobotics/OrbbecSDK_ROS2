@@ -25,6 +25,7 @@
 
 #include "libobsensor/ObSensor.hpp"
 #include <pthread.h>
+#include <std_srvs/srv/empty.hpp>
 
 namespace orbbec_camera {
 
@@ -64,6 +65,9 @@ class OBCameraNodeDriver : public rclcpp::Node {
 
   void resetDevice();
 
+  void rebootDeviceCallback(const std::shared_ptr<std_srvs::srv::Empty::Request> request,
+                            std::shared_ptr<std_srvs::srv::Empty::Response> response);
+
  private:
   std::string config_path_;
   std::unique_ptr<ob::Context> ctx_ = nullptr;
@@ -89,7 +93,6 @@ class OBCameraNodeDriver : public rclcpp::Node {
   std::condition_variable reset_device_cond_;
   std::atomic_bool reset_device_flag_{false};
   pthread_mutex_t* orb_device_lock_ = nullptr;
-  sem_t* orb_device_sem_ = nullptr;
   pthread_mutexattr_t orb_device_lock_attr_;
   uint8_t* orb_device_lock_shm_addr_ = nullptr;
   int orb_device_lock_shm_fd_ = -1;
@@ -98,5 +101,7 @@ class OBCameraNodeDriver : public rclcpp::Node {
   int net_device_port_ = 0;
   int connection_delay_ = 100;
   bool enable_sync_host_time_ = true;
+  rclcpp::Service<std_srvs::srv::Empty>::SharedPtr reboot_device_srv_ = nullptr;
+  std::chrono::time_point<std::chrono::system_clock> start_time_;
 };
 }  // namespace orbbec_camera

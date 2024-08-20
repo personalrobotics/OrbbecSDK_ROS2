@@ -59,7 +59,7 @@ def generate_launch_description():
         DeclareLaunchArgument('point_cloud_qos', default_value='default'),
         DeclareLaunchArgument('enable_point_cloud', default_value='false'),
         DeclareLaunchArgument('enable_colored_point_cloud', default_value='false'),
-        DeclareLaunchArgument('connection_delay', default_value='100'),
+        DeclareLaunchArgument('connection_delay', default_value='10'),
         DeclareLaunchArgument('color_width', default_value='0'),
         DeclareLaunchArgument('color_height', default_value='0'),
         DeclareLaunchArgument('color_fps', default_value='0'),
@@ -164,7 +164,9 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_3d_reconstruction_mode', default_value='false'),
         DeclareLaunchArgument('enable_sync_host_time', default_value='true'),
         DeclareLaunchArgument('time_domain', default_value='device'),
+        DeclareLaunchArgument('enable_color_undistortion', default_value='false'),
         DeclareLaunchArgument('config_file_path', default_value=''),
+        DeclareLaunchArgument('enable_heartbeat', default_value='false'),
     ]
 
     def get_params(context, args):

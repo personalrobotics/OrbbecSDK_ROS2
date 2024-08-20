@@ -1,5 +1,5 @@
 # Orbbec ROS2 SDK
- [![stable](http://badges.github.io/stability-badges/dist/stable.svg)](http://github.com/badges/stability-badges) ![version](https://img.shields.io/badge/version-1.5.8-green)
+ [![stable](http://badges.github.io/stability-badges/dist/stable.svg)](http://github.com/badges/stability-badges) ![version](https://img.shields.io/badge/version-1.5.11-green)
 
 Orbbec SDK ROS 2 is a wrapper for the Orbbec 3D camera that provides seamless integration with the ROS 2 environment. It
 supports ROS 2 Foxy, Humble, and Jazzy distributions.
@@ -19,6 +19,7 @@ supports ROS 2 Foxy, Humble, and Jazzy distributions.
   * [All available topics](#all-available-topics)
   * [Network device enumeration](#network-device-enumeration)
   * [Multi-Camera](#multi-camera)
+  * [Compressed Image](#compressed-image)
   * [Use hardware decoder to decode JPEG](#use-hardware-decoder-to-decode-jpeg)
     * [rockchip and Amlogic](#rockchip-and-amlogic)
     * [Nvidia Jetson](#nvidia-jetson)
@@ -33,6 +34,7 @@ supports ROS 2 Foxy, Humble, and Jazzy distributions.
   * [Frequently Asked Questions](#frequently-asked-questions)
     * [No Data Stream from Multiple Cameras](#no-data-stream-from-multiple-cameras)
     * [Why Are There So Many Launch Files Here?](#why-are-there-so-many-launch-files-here)
+    * [If You Encounter Additional Issues](#if-you-encounter-additional-issues)
   * [Other useful links](#other-useful-links)
   * [License](#license)
 <!-- TOC -->
@@ -72,7 +74,7 @@ Install deb dependencies
 # assume you have sourced ROS environment, same blow
 sudo apt install libgflags-dev nlohmann-json3-dev  \
 ros-$ROS_DISTRO-image-transport ros-$ROS_DISTRO-image-publisher ros-$ROS_DISTRO-camera-info-manager \
-ros-$ROS_DISTRO-diagnostic-updater ros-$ROS_DISTRO-diagnostic-msgs
+ros-$ROS_DISTRO-diagnostic-updater ros-$ROS_DISTRO-diagnostic-msgs ros-$ROS_DISTRO-statistics-msgs
 ```
 
 Install udev rules.
@@ -204,7 +206,7 @@ The following are the launch parameters available:
 - `enable_color`: Enables the RGB camera.
 - `enable_depth`: Enables the depth camera.
 - `enable_ir`: Enables the IR camera.
-- `depth_registration`: Enables hardware alignment of the depth frame to the color frame. This field is required when
+- `depth_registration`: Enables alignment of the depth frame to the color frame. This field is required when
   the `enable_colored_point_cloud` is set to `true`.
 - `usb_port`: The USB port of the camera. This is required when multiple cameras are used.
 - `enable_accel`: Enables the accelerometer.
@@ -265,6 +267,10 @@ devices, aligning data from different sources to a common time base.
 use global time, set to `false`. Some old devices may not support this feature.
 - `config_file_path`: The path to the YAML configuration file. The default value is `""`. If the configuration file is not specified,
 the default parameters from the launch file will be used. If you want to use a custom configuration file, please refer to `gemini_330_series.launch.py`.
+  `enable_heartbeat` enables the heartbeat function, which is set to `false` by default. If set to `true`, the camera node will send heartbeat signals to 
+the firmware, and if hardware logging is desired, it should also be set to `true`.
+- `log_level` : SDK log level, the default value is `info`, the optional values are `debug`, `info`, `warn`, `error`, `fatal`.
+- `enable_color_undistortion`: Enables color undistortion, the default value is `false`. Note that our color cameras exhibit minimal distortion, and typically, undistortion is not necessary.
 
 **IMPORTANT**: *Please carefully read the instructions regarding software filtering settings
 at [this link](https://www.orbbec.com/docs/g330-use-depth-post-processing-blocks/). If you are uncertain, do not modify
@@ -459,6 +465,16 @@ def generate_launch_description():
 ```bash
 ros2 launch orbbec_camera multi_camera.launch.py
 ```
+
+## Compressed Image
+You can use `image_transport` to compress the image using `jpeg`. Below is an example of how to use it:
+
+To access the compressed color image, you can use the following command:
+```bash
+ros2 topic echo /camera/color/image_raw/compressed --no-arr
+```
+
+This command will allow you to receive the compressed color image from the specified topic.
 
 ## Use hardware decoder to decode JPEG
 
@@ -656,6 +672,11 @@ If you use Fast DDS, you can refer to the [Fast DDS Configuration](./docs/fastdd
 
 - Multiple launch files exist because different cameras have varying default resolutions and image formats.
 - To simplify usage, each camera has its own launch file.
+
+### If You Encounter Additional Issues
+
+- If you encounter other issues, set the `log_level` parameter to `debug`. This will generate an SDK Log file in the running directory. Provide this file to the support team for further assistance.
+- If firmware logs are required, set `enable_heartbeat` to `true` to activate this feature.
 
 ## Other useful links
 

@@ -79,6 +79,9 @@ void OBCameraNodeDriver::init() {
     RCLCPP_ERROR_STREAM(logger_, "Failed to map shared memory " << ORB_DEFAULT_LOCK_NAME);
     return;
   }
+  reboot_device_srv_ = this->create_service<std_srvs::srv::Empty>(
+      "reboot_device", std::bind(&OBCameraNodeDriver::rebootDeviceCallback, this,
+                                 std::placeholders::_1, std::placeholders::_2));
   pthread_mutexattr_init(&orb_device_lock_attr_);
   pthread_mutexattr_setpshared(&orb_device_lock_attr_, PTHREAD_PROCESS_SHARED);
   orb_device_lock_ = (pthread_mutex_t *)orb_device_lock_shm_addr_;
@@ -202,6 +205,21 @@ void OBCameraNodeDriver::resetDevice() {
   }
 }
 
+void OBCameraNodeDriver::rebootDeviceCallback(
+    const std::shared_ptr<std_srvs::srv::Empty::Request> request,
+    std::shared_ptr<std_srvs::srv::Empty::Response> response) {
+  (void)request;
+  (void)response;
+  if (!device_connected_) {
+    RCLCPP_WARN(logger_, "Device not connected");
+    return;
+  }
+  RCLCPP_INFO(logger_, "Reboot device");
+  ob_camera_node_->rebootDevice();
+  device_connected_ = false;
+  device_ = nullptr;
+}
+
 std::shared_ptr<ob::Device> OBCameraNodeDriver::selectDevice(
     const std::shared_ptr<ob::DeviceList> &list) {
   if (device_num_ == 1) {
@@ -315,6 +333,10 @@ void OBCameraNodeDriver::initializeDevice(const std::shared_ptr<ob::Device> &dev
   RCLCPP_INFO_STREAM(logger_, "Hardware version: " << device_info_->hardwareVersion());
   RCLCPP_INFO_STREAM(logger_, "device unique id: " << device_unique_id_);
   RCLCPP_INFO_STREAM(logger_, "Current node pid: " << getpid());
+  RCLCPP_INFO_STREAM(logger_, "usb connect type: " << device_info_->connectionType());
+  auto time_cost = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::high_resolution_clock::now() - start_time_);
+  RCLCPP_INFO_STREAM(logger_, "Start device cost " << time_cost.count() << " ms");
 }
 
 void OBCameraNodeDriver::connectNetDevice(const std::string &net_device_ip, int net_device_port) {
@@ -339,6 +361,7 @@ void OBCameraNodeDriver::startDevice(const std::shared_ptr<ob::DeviceList> &list
     RCLCPP_WARN(logger_, "No device found");
     return;
   }
+  start_time_ = std::chrono::high_resolution_clock::now();
   if (device_) {
     device_.reset();
   }
@@ -348,14 +371,22 @@ void OBCameraNodeDriver::startDevice(const std::shared_ptr<ob::DeviceList> &list
                                    [this](int *) { pthread_mutex_unlock(orb_device_lock_); });
   bool start_device_failed = false;
   try {
+    auto start_time = std::chrono::high_resolution_clock::now();
     auto device = selectDevice(list);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto time_cost = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+    RCLCPP_INFO_STREAM(logger_, "Select device cost " << time_cost.count() << " ms");
     if (device == nullptr) {
       RCLCPP_WARN_THROTTLE(logger_, *get_clock(), 1000, "Device with serial number %s not found",
                            serial_number_.c_str());
       device_connected_ = false;
       return;
     }
+    start_time = std::chrono::high_resolution_clock::now();
     initializeDevice(device);
+    end_time = std::chrono::high_resolution_clock::now();
+    time_cost = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+    RCLCPP_INFO_STREAM(logger_, "Initialize device cost " << time_cost.count() << " ms");
   } catch (ob::Error &e) {
     RCLCPP_ERROR_STREAM(logger_, "Failed to initialize device " << e.getMessage());
     start_device_failed = true;

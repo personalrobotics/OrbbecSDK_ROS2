@@ -143,6 +143,8 @@ class OBCameraNode {
 
   void clean() noexcept;
 
+  void rebootDevice();
+
   void startStreams();
 
   void startIMUSyncStream();
@@ -294,7 +296,7 @@ class OBCameraNode {
 
   std::shared_ptr<ob::Frame> processDepthFrameFilter(std::shared_ptr<ob::Frame>& frame);
 
-  uint64_t getFrameTimestampUs(const std::shared_ptr<ob::Frame> & frame);
+  uint64_t getFrameTimestampUs(const std::shared_ptr<ob::Frame>& frame);
 
   void onNewFrameSetCallback(std::shared_ptr<ob::FrameSet> frame_set);
 
@@ -335,6 +337,8 @@ class OBCameraNode {
   orbbec_camera_msgs::msg::IMUInfo createIMUInfo(const stream_index_pair& stream_index);
 
   static bool isGemini335PID(uint32_t pid);
+
+  void setupDepthPostProcessFilter();
 
  private:
   rclcpp::Node* node_ = nullptr;
@@ -554,9 +558,12 @@ class OBCameraNode {
   bool enable_3d_reconstruction_mode_ = false;
   int min_depth_limit_ = 0;
   int max_depth_limit_ = 0;
-  std::string time_domain_ = "device"; // device, system, global
+  std::string time_domain_ = "device";  // device, system, global
   // soft ware trigger
   rclcpp::TimerBase::SharedPtr software_trigger_timer_;
   std::chrono::milliseconds software_trigger_period_{33};
+  bool enable_heartbeat_ = false;
+  bool enable_color_undistortion_ = false;
+  image_transport::Publisher color_undistortion_publisher_;
 };
 }  // namespace orbbec_camera
