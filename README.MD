@@ -11,6 +11,12 @@ supports ROS 2 Foxy, Humble, and Jazzy distributions.
   * [Table of Contents](#table-of-contents)
   * [Installation Instructions](#installation-instructions)
   * [Getting start](#getting-start)
+  * [Efficient intra-process communication:](#efficient-intra-process-communication)
+    * [Example](#example)
+      * [Manually loading multiple components into the same process](#manually-loading-multiple-components-into-the-same-process)
+      * [Using a launch file](#using-a-launch-file)
+    * [Limitations](#limitations)
+  * [Use V4L2 backend](#use-v4l2-backend)
   * [Launch parameters](#launch-parameters)
   * [Predefined presets](#predefined-presets)
   * [Depth work mode switch](#depth-work-mode-switch)
@@ -32,9 +38,10 @@ supports ROS 2 Foxy, Humble, and Jazzy distributions.
   * [Product support](#product-support)
   * [DDS Tuning](#dds-tuning)
   * [Frequently Asked Questions](#frequently-asked-questions)
+    * [Unexpected Crash](#unexpected-crash)
     * [No Data Stream from Multiple Cameras](#no-data-stream-from-multiple-cameras)
-    * [Why Are There So Many Launch Files Here?](#why-are-there-so-many-launch-files-here)
-    * [If You Encounter Additional Issues](#if-you-encounter-additional-issues)
+    * [Additional Troubleshooting](#additional-troubleshooting)
+    * [Why Are There So Many Launch Files?](#why-are-there-so-many-launch-files)
   * [Other useful links](#other-useful-links)
   * [License](#license)
 <!-- TOC -->
@@ -74,7 +81,8 @@ Install deb dependencies
 # assume you have sourced ROS environment, same blow
 sudo apt install libgflags-dev nlohmann-json3-dev  \
 ros-$ROS_DISTRO-image-transport ros-$ROS_DISTRO-image-publisher ros-$ROS_DISTRO-camera-info-manager \
-ros-$ROS_DISTRO-diagnostic-updater ros-$ROS_DISTRO-diagnostic-msgs ros-$ROS_DISTRO-statistics-msgs
+ros-$ROS_DISTRO-diagnostic-updater ros-$ROS_DISTRO-diagnostic-msgs ros-$ROS_DISTRO-statistics-msgs \
+ros-$ROS_DISTRO-backward-ros libdw-dev
 ```
 
 Install udev rules.
@@ -183,6 +191,48 @@ ros2 service call /camera/toggle_ir std_srvs/srv/SetBool "{data : true}"
 ```bash
 ros2 service call /camera/save_point_cloud std_srvs/srv/Empty "{}"
 ```
+
+## Efficient intra-process communication:
+  
+Our ROS2 Wrapper node supports zero-copy communications if loaded in the same process as a subscriber node. This can reduce copy times on image/pointcloud topics, especially with big frame resolutions and high FPS.
+
+You will need to launch a component container and launch our node as a component together with other component nodes. Further details on "Composing multiple nodes in a single process" can be found [here](https://docs.ros.org/en/rolling/Tutorials/Composition.html).
+
+Further details on efficient intra-process communication can be found [here](https://docs.ros.org/en/humble/Tutorials/Intra-Process-Communication.html#efficient-intra-process-communication).
+
+### Example
+#### Manually loading multiple components into the same process
+* Start the component:
+  ```bash
+  ros2 run rclcpp_components component_container
+  ```
+
+* Add the wrapper:
+  ```bash
+  ros2 component load /ComponentManager orbbec_camera orbbec_camera::OBCameraNodeDriver -e use_intra_process_comms:=true
+  ```
+  Load other component nodes (consumers of the wrapper topics) in the same way.
+
+#### Using a launch file
+
+```bash
+ros2 launch orbbec_camera gemini_intra_process_demo_launch.py
+```
+
+### Limitations
+
+* Node components are currently not supported on RCLPY
+* Compressed images using `image_transport` will be disabled as this isn't supported with intra-process communication
+
+## Use V4L2 backend
+To enable the V4L2 backend for the Gemini2 series cameras, follow these steps:
+
+1. The Gemini2 series cameras support the V4L2 backend.
+2. Open the `config/OrbbecSDKConfig_v1.0.xml` file.
+3. Set the navigation option to `LinuxUVCBackend`.
+4. Change the backend setting to `V4L2`.
+
+Note: The V4L2 backend is not enabled by default.
 
 ## Launch parameters
 
@@ -651,32 +701,41 @@ net.core.rmem_default=2147483647
 
 If you use Fast DDS, you can refer to the [Fast DDS Configuration](./docs/fastdds_tuning.md) file.
 
+
 ## Frequently Asked Questions
+
+### Unexpected Crash
+
+If the camera node crashes unexpectedly, it will generate a crash log in the current running directory: `Log/camera_crash_stack_trace_xx.log`.
+Please send this log to the support team or submit it to a GitHub issue for further assistance.
 
 ### No Data Stream from Multiple Cameras
 
 **Insufficient Power Supply**:
-  - Ensure that all cameras are not connected to the same hub.
-  - Use a powered hub to provide sufficient power to each camera.
+- Ensure that each camera is connected to a separate hub.
+- Use a powered hub to provide sufficient power to each camera.
+
 **High Resolution**:
-  - Try lowering the resolution to resolve data stream issues.
+- Try lowering the resolution to resolve data stream issues.
 
 **Increase usbfs_memory_mb Value**:
-  - Increase the `usbfs_memory_mb` value to 128MB by running the following command:
-    ```bash
+- Increase the `usbfs_memory_mb` value to 128MB (this is a reference value and can be adjusted based on your system’s needs) 
+by running the following command:
+```bash
     echo 128 | sudo tee /sys/module/usbcore/parameters/usbfs_memory_mb
-    ```
-  - For making this change permanent, check [this link](https://github.com/OpenKinect/libfreenect2/issues/807).
+```
+- To make this change permanent, check [this link](https://github.com/OpenKinect/libfreenect2/issues/807).
 
-### Why Are There So Many Launch Files Here?
+### Additional Troubleshooting
 
-- Multiple launch files exist because different cameras have varying default resolutions and image formats.
-- To simplify usage, each camera has its own launch file.
-
-### If You Encounter Additional Issues
-
-- If you encounter other issues, set the `log_level` parameter to `debug`. This will generate an SDK Log file in the running directory. Provide this file to the support team for further assistance.
+- If you encounter other issues, set the `log_level` parameter to `debug`. This will generate an SDK log file in the running directory: `Log/OrbbecSDK.log.txt`. 
+Please provide this file to the support team for further assistance.
 - If firmware logs are required, set `enable_heartbeat` to `true` to activate this feature.
+
+### Why Are There So Many Launch Files?
+
+- Different cameras have varying default resolutions and image formats.
+- To simplify usage, each camera has its own launch file.
 
 ## Other useful links
 
