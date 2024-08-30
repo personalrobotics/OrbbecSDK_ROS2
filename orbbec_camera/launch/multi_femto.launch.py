@@ -16,8 +16,6 @@ def generate_launch_description():
         launch_arguments={
             'camera_name': 'front_camera',
             'usb_port': '2-2',
-            # 'usb_port': '2-9.2.1',
-            # 'serial_number': 'CL8K14100WH',
             'device_num': '2',
             'sync_mode': 'standalone',
             'enable_colored_point_cloud': 'true'
@@ -31,8 +29,6 @@ def generate_launch_description():
         launch_arguments={
             'camera_name': 'top_camera',
             'usb_port': '2-3',
-            # 'usb_port': '2-9.1.4',
-            # 'serial_number': 'CL8K14101DW',
             'device_num': '2',
             'sync_mode': 'standalone',
             'enable_colored_point_cloud': 'true'
