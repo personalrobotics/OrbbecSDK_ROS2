@@ -102,6 +102,10 @@ OBCameraNodeDriver::~OBCameraNodeDriver() {
     reset_device_cond_.notify_all();
     reset_device_thread_->join();
   }
+  if (orb_device_lock_shm_fd_ >= 0) {
+    close(orb_device_lock_shm_fd_);
+    shm_unlink(ORB_DEFAULT_LOCK_NAME.c_str());
+  }
 }
 
 void OBCameraNodeDriver::init() {
@@ -276,23 +280,51 @@ void OBCameraNodeDriver::rebootDeviceCallback(
 std::shared_ptr<ob::Device> OBCameraNodeDriver::selectDevice(
     const std::shared_ptr<ob::DeviceList> &list) {
   if (device_num_ == 1) {
-    RCLCPP_INFO_STREAM(logger_, "Connecting to the default device");
-    return list->getDevice(0);
+    std::shared_ptr<ob::Device> device = nullptr;
+    if (!serial_number_.empty()) {
+      RCLCPP_INFO_STREAM(logger_, "Connecting to device with serial number: " << serial_number_);
+      device = selectDeviceBySerialNumber(list, serial_number_);
+      if (device == nullptr) {
+        RCLCPP_WARN_THROTTLE(logger_, *get_clock(), 1000, "Device with serial number %s not found",
+                            serial_number_.c_str());
+        device_connected_ = false;
+        return nullptr;
+      }
+    } else if (!usb_port_.empty()) {
+      RCLCPP_INFO_STREAM(logger_, "Connecting to device with usb port: " << usb_port_);
+      device = selectDeviceByUSBPort(list, usb_port_);
+      if (device == nullptr) {
+        RCLCPP_WARN_THROTTLE(logger_, *get_clock(), 1000, "Device with usb port: %s not found",
+                            usb_port_.c_str());
+        device_connected_ = false;
+        return nullptr;
+      }
+    } else {
+      RCLCPP_INFO_STREAM(logger_, "Connecting to the default device");
+      return list->getDevice(0);
+    }
+    return device;
   }
 
   std::shared_ptr<ob::Device> device = nullptr;
   if (!serial_number_.empty()) {
     RCLCPP_INFO_STREAM(logger_, "Connecting to device with serial number: " << serial_number_);
     device = selectDeviceBySerialNumber(list, serial_number_);
+    if (device == nullptr) {
+      RCLCPP_WARN_THROTTLE(logger_, *get_clock(), 1000, "Device with serial number %s not found",
+                          serial_number_.c_str());
+      device_connected_ = false;
+      return nullptr;
+    }
   } else if (!usb_port_.empty()) {
     RCLCPP_INFO_STREAM(logger_, "Connecting to device with usb port: " << usb_port_);
     device = selectDeviceByUSBPort(list, usb_port_);
-  }
-  if (device == nullptr) {
-    RCLCPP_WARN_THROTTLE(logger_, *get_clock(), 1000, "Device with serial number %s not found",
-                         serial_number_.c_str());
-    device_connected_ = false;
-    return nullptr;
+    if (device == nullptr) {
+      RCLCPP_WARN_THROTTLE(logger_, *get_clock(), 1000, "Device with usb port: %s not found",
+                          usb_port_.c_str());
+      device_connected_ = false;
+      return nullptr;
+    }
   }
   return device;
 }
