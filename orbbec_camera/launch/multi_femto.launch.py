@@ -1,7 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction, ExecuteProcess
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 import os
 
@@ -17,7 +16,6 @@ def generate_launch_description():
         launch_arguments={
             'camera_name': 'front_camera',
             'usb_port': '2-2',
-            # 'serial_number': 'CL8K14100WH',
             'device_num': '2',
             'sync_mode': 'standalone',
             'enable_colored_point_cloud': 'true'
@@ -31,7 +29,6 @@ def generate_launch_description():
         launch_arguments={
             'camera_name': 'top_camera',
             'usb_port': '2-3',
-            # 'serial_number': 'CL8K14101DW',
             'device_num': '2',
             'sync_mode': 'standalone',
             'enable_colored_point_cloud': 'true'
