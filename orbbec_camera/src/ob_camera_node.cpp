@@ -1026,7 +1026,7 @@ void OBCameraNode::getParameters() {
   if (!depth_precision_str_.empty()) {
     depth_precision_ = depthPrecisionLevelFromString(depth_precision_str_);
   }
-  if (enable_colored_point_cloud_) {
+  if (enable_colored_point_cloud_ || enable_d2c_viewer_) {
     depth_registration_ = true;
   }
   if (!enable_stream_[COLOR]) {
@@ -1366,7 +1366,10 @@ void OBCameraNode::publishDepthPointCloud(const std::shared_ptr<ob::FrameSet> &f
   }
   CHECK_NOTNULL(pipeline_);
   auto camera_params = pipeline_->getCameraParam();
-  if (depth_registration_) {
+  auto device_info = device_->getDeviceInfo();
+  CHECK_NOTNULL(device_info.get());
+  auto pid = device_info->pid();
+  if (depth_registration_ || pid == DABAI_MAX_PID) {
     camera_params.depthIntrinsic = camera_params.rgbIntrinsic;
   }
   depth_point_cloud_filter_.setCameraParam(camera_params);
@@ -1896,6 +1899,11 @@ void OBCameraNode::onNewFrameCallback(const std::shared_ptr<ob::Frame> &frame,
                                                       : camera_params.depthIntrinsic;
     distortion = stream_index.first == OB_STREAM_COLOR ? camera_params.rgbDistortion
                                                        : camera_params.depthDistortion;
+    if (pid == DABAI_MAX_PID) {
+      // use color param
+      intrinsic = camera_params.rgbIntrinsic;
+      distortion = camera_params.rgbDistortion;
+    }
   }
   std::string frame_id = optical_frame_id_[stream_index];
   if (depth_registration_ && stream_index == DEPTH) {
